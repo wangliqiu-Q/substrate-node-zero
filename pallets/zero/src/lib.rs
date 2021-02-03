@@ -58,11 +58,15 @@ pub trait Trait: system::Trait {
 
 
 decl_storage! {
+	// PalletZero 为 module_prefix
 	trait Store for Module<T: Trait> as PalletZero {
-		/// SimpleMap 会实现 frame_support::storage::StorageMap
+		/// `EXP`
+		/// impl<T: Trait> StorageMap<T::AccountId, u32> for SimpleMap<T>
+		/// impl<T: Trait> StoragePrefixedMap<u32> for SimpleMap<T>
+		/// `frame_support::storage::StorageMap`
 		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageMap.html
 		///
-		/// `SimpleMap` - the name of the storage map
+		/// `SimpleMap` - struct
 		/// `get(fn simple_map)` - the name of a getter function that will return values from the map.
 		/// `: map hasher(blake2_128_concat)` - declare type is map with blake2_128_concat hasher.
 		/// `T::AccountId => u32` - key and value type of the map.
@@ -75,7 +79,9 @@ decl_storage! {
 		/// is only an option when the key type in your storage map is already a hash.
 		SimpleMap get(fn simple_map): map hasher(blake2_128_concat) T::AccountId => u32;
 
-		// clone type
+		/// `EXP`
+		/// impl<T: Trait> StorageValue<T::AccountId> for UserCache<T>
+		/// `frame_support::storage::StorageValue`
 		UserCache get(fn user_cache): T::AccountId;
 	}
 }
@@ -111,6 +117,11 @@ decl_event!(
 	}
 );
 
+
+/// `EXP`
+/// impl<T: Trait> From<ZeroError<T>> for &'static str
+/// impl<T: Trait> From<ZeroError<T>> for sp_runtime::DispatchError
+///
 decl_error! {
 	pub enum ZeroError for Module<T: Trait> {
 		NoValueStored,
