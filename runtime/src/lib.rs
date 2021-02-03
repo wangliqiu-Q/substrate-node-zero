@@ -131,8 +131,7 @@ parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 }
 
-// Configure FRAME pallets to include in runtime.
-
+// ------------------------------ Configure FRAME pallets ---------------------------------------
 impl frame_system::Trait for Runtime {
 	/// The basic call filter to use in dispatchable.
 	type BaseCallFilter = ();
@@ -191,6 +190,11 @@ impl frame_system::Trait for Runtime {
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 }
+
+// ------------------------------ Configure local pallets ---------------------------------------
+impl pallet_zero::Trait for Runtime {}
+
+
 
 impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
