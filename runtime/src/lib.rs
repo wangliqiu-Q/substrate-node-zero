@@ -293,7 +293,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// ------------------------ local pallets -------------------------------
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
-		Zero: pallet_zero::{Module, Call, Event<T>},	// <T> is necessary for generic events.
+		Zero: pallet_zero::{Module, Call, Event<T>, Storage},	// <T> is necessary for generic events.
 		Simple: pallet_simple::{Module, Call, Event},
 	}
 );

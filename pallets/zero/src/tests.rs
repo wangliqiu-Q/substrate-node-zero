@@ -1,6 +1,7 @@
+use super::RawEvent;
 use crate::{Module, Trait};
 use frame_support::{
-	assert_noop, assert_ok, dispatch::DispatchError, impl_outer_origin, parameter_types,
+	assert_noop, assert_ok, dispatch::DispatchError, impl_outer_origin, impl_outer_event, parameter_types,
 };
 use frame_system::{self as system, RawOrigin};
 use sp_core::H256;
@@ -51,6 +52,19 @@ impl system::Trait for TestRuntime {
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 }
+
+mod pallet_zero {
+	pub use crate::Event;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for TestRuntime {
+		pallet_zero<T>,
+		system<T>,
+	}
+}
+
+
 
 impl Trait for TestRuntime {
 	type Event = TestEvent;
