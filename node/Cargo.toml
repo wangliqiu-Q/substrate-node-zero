@@ -1,13 +1,12 @@
 [package]
-authors = ['wangliqiu2021']
-build = 'build.rs'
+name = 'node'
+version = '2.0.1'
+authors = ["wangliqiu <wangviviying@163.com>"]
 edition = '2018'
 license = 'Unlicense'
-name = 'node-template'
-version = '2.0.1'
 
 [[bin]]
-name = 'node-template'
+name = 'node'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -19,10 +18,10 @@ substrate-build-script-utils = '2.0.1'
 jsonrpc-core = '15.0.0'
 structopt = '0.3.8'
 
-# local dependencies
-node-template-runtime = { path = '../runtime', version = '2.0.1' }
+##################################### Local Dependencies #####################################
+runtime = { path = '../runtime', version = '2.0.1' }
 
-# Substrate dependencies
+##################################### Substrate Dependencies #####################################
 frame-benchmarking = '2.0.1'
 frame-benchmarking-cli = '2.0.1'
 pallet-transaction-payment-rpc = '2.0.1'
@@ -51,4 +50,4 @@ substrate-frame-rpc-system = '2.0.1'
 
 [features]
 default = []
-runtime-benchmarks = ['node-template-runtime/runtime-benchmarks']
+runtime-benchmarks = ['runtime/runtime-benchmarks']

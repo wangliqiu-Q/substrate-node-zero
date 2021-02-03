@@ -16,7 +16,7 @@ check:
 
 .PHONY: check-runtime
 check-runtime:
-	SKIP_WASM_BUILD=1 cargo check -p node-template-runtime
+	SKIP_WASM_BUILD=1 cargo check -p runtime
 
 
 .PHONY: test
@@ -29,13 +29,13 @@ build:
 	 cargo build --release
 
 
-# RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-template -lruntime=debug --dev --tmp
+# RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node -lruntime=debug --dev --tmp
 .PHONY: debug
-run:
-	 RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-template -lruntime=debug --dev --tmp
+debug:
+	 RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node -lruntime=debug --dev --tmp
 
 
-#./target/release/node-template --dev --tmp
+#./target/release/node --dev --tmp
 .PHONY: run
 run:
 	 cargo run --release -- --dev --tmp
