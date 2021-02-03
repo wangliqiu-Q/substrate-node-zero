@@ -192,9 +192,15 @@ impl frame_system::Trait for Runtime {
 }
 
 // ------------------------------ Configure local pallets ---------------------------------------
-impl pallet_zero::Trait for Runtime {}
+impl pallet_zero::Trait for Runtime {
+	type Event = Event;
+}
 
+impl pallet_simple::Trait for Runtime {
+	type Event = Event;
+}
 
+// ----------------------------------------------------------------------------------------------
 
 impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
@@ -270,7 +276,7 @@ impl pallet_template::Trait for Runtime {
 	type Event = Event;
 }
 
-// Create the runtime by composing the FRAME pallets that were previously configured.
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -285,8 +291,10 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		// Include the custom logic from the template pallet in the runtime.
+		// ------------------------ local pallets -------------------------------
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+		Zero: pallet_zero::{Module, Call, Event<T>},	// <T> is necessary for generic events.
+		Simple: pallet_simple::{Module, Call, Event},
 	}
 );
 

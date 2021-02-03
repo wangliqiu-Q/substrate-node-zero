@@ -35,6 +35,12 @@ debug:
 	 RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node -lruntime=debug --dev --tmp
 
 
+# https://polkadot.js.org/apps
+.PHONY: run-debug
+run-debug:
+	 cargo run -- -lruntime=debug --dev --tmp
+
+
 #./target/release/node --dev --tmp
 .PHONY: run
 run:

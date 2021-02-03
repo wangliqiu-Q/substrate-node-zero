@@ -21,6 +21,7 @@ serde = { features = ['derive'], optional = true, version = '1.0.119' }
 ##################################### Local Dependencies #####################################
 pallet-template = { path = '../pallets/template', default-features = false, version = '2.0.1' }
 pallet-zero = { path = '../pallets/zero', default-features = false, version = '2.0.1' }
+pallet-simple = { path = '../pallets/simple', default-features = false, version = '2.0.1' }
 
 ##################################### Substrate Dependencies #####################################
 # frame
@@ -70,6 +71,7 @@ std = [
     # local pallet
     'pallet-template/std',
     'pallet-zero/std',
+    'pallet-simple/std',
     # frame
     'frame-executive/std',
     'frame-support/std',
