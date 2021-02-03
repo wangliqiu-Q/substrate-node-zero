@@ -38,7 +38,7 @@
 //!
 
 use frame_support::{debug, decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
-use frame_system::{self, ensure_signed};
+use frame_system::{self as system, ensure_signed};
 // Substrate runtimes are compiled to both Web Assembly and a regular native binary, and do not have
 // access to rust's standard library.
 // only able to print items that implement the `Printable` trait
@@ -49,29 +49,34 @@ use sp_runtime::print;
 mod tests;
 
 /// configuration trait: access features from other pallets, or constants that affect the pallet's behavior.
-pub trait Trait: frame_system::Trait {
-	/// <Self as frame_system::Trait>::Event 为父 trait 的关联类型 Event
+pub trait Trait: system::Trait {
+	/// <Self as system::Trait>::Event 为父 trait 的关联类型 Event
 	/// From<Event<Self>> 中的 Event 为 decl_event! 所生成的 RawEvent<<T as system::Trait>::AccountId>
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 
 
 decl_storage! {
-	// SimpleMap 会实现 frame_support::storage::StorageMap
-	// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageMap.html
-	trait Store for Module<T: Trait> as SimpleMap {
+	trait Store for Module<T: Trait> as PalletZero {
+		/// SimpleMap 会实现 frame_support::storage::StorageMap
+		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageMap.html
+		///
 		/// `SimpleMap` - the name of the storage map
 		/// `get(fn simple_map)` - the name of a getter function that will return values from the map.
 		/// `: map hasher(blake2_128_concat)` - declare type is map with blake2_128_concat hasher.
 		/// `T::AccountId => u32` - key and value type of the map.
+		///
+		/// Choosing a Hasher:
+		/// `blake2_128_concat`: keep your storage tree balanced. 比如防御某人用大量的 AccountId 来恶意攻击。
+		/// `twox_64_concat`: efficient than blake2, You should not use this hasher if chain users can
+		/// affect the storage keys.
+		/// `identity`: merely an identity function that returns the same value it receives. This hasher
+		/// is only an option when the key type in your storage map is already a hash.
 		SimpleMap get(fn simple_map): map hasher(blake2_128_concat) T::AccountId => u32;
-		// Choosing a Hasher:
-		// `blake2_128_concat`: keep your storage tree balanced. 比如防御某人用大量的 AccountId 来恶意攻击。
-		// `twox_64_concat`: efficient than blake2, You should not use this hasher if chain users can
-		// affect the storage keys.
-		// `identity`: merely an identity function that returns the same value it receives. This hasher
-		// is only an option when the key type in your storage map is already a hash.
+
+		// clone type
+		UserCache get(fn user_cache): T::AccountId;
 	}
 }
 
@@ -81,7 +86,7 @@ decl_storage! {
 ///     EmitInput(AccountId, u32),
 /// }
 ///
-/// pub type Event<T> = RawEvent<<T as frame_system::Trait>::AccountId>;
+/// pub type Event<T> = RawEvent<<T as system::Trait>::AccountId>;
 /// ```
 fn expand_decl_event() {}
 
@@ -90,7 +95,7 @@ fn expand_decl_event() {}
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as frame_system::Trait>::AccountId,
+		AccountId = <T as system::Trait>::AccountId,
 	{
 		EmitInput(AccountId, u32),
 
@@ -100,6 +105,9 @@ decl_event!(
 		GetEntry(AccountId, u32),
 		/// (user, old_value, new_value)
 		IncreaseEntry(AccountId, u32, u32),
+
+		/// (old_user, new_user)
+		UpdateCache(AccountId, AccountId),
 	}
 );
 
@@ -116,9 +124,9 @@ decl_error! {
 /// pub struct Module<T: Trait>(PhantomData<(T)>);
 ///
 /// impl<T: Trait> Module<T> {
-/// 	/// Deposits an event using `frame_system::Module::deposit_event`.
+/// 	/// Deposits an event using `system::Module::deposit_event`.
 /// 	fn deposit_event(event: impl Into<<T as Trait>::Event>) {
-/// 		<frame_system::Module<T>>::deposit_event(event.into())
+/// 		<system::Module<T>>::deposit_event(event.into())
 /// 	}
 /// }
 ///
@@ -191,6 +199,23 @@ decl_module! {
 			let new_value = original_value.checked_add(add_this_val).ok_or(ZeroError::<T>::MaxValueReached)?;
 			<SimpleMap<T>>::insert(&user, new_value);
 			Self::deposit_event(RawEvent::IncreaseEntry(user, original_value, new_value));
+
+			Ok(())
+		}
+
+		/// storage 的 io 操作有一定的 cost ，应该尽量避免。
+		/// 比如以下非 Copy 的类型
+		#[weight = 10_000]
+		fn update_cache(origin) -> DispatchResult {
+			let user = ensure_signed(origin)?;
+			let existing_user = <UserCache<T>>::get();
+			// 因为 Self::deposit_event 会 move 掉 old_king
+			let old_user = existing_user.clone();
+			// 尽量避免走 io ，应该采用 clone
+			// let old_user = <UserCache<T>>::get();
+
+			<UserCache<T>>::put(user.clone());
+			Self::deposit_event(RawEvent::UpdateCache(old_user, user));
 
 			Ok(())
 		}
