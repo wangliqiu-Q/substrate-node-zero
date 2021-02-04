@@ -23,10 +23,10 @@ pub trait Trait: system::Trait {
 decl_storage! {
 	trait Store for Module<T: Trait> as PalletTemplate {
 		// todo https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-		MembersVec get(fn members): Vec<T::AccountId>;
+		MembersVec get(fn members_vec): Vec<T::AccountId>;
 
 		// Set<K> 等于 Map<K,()>
-		MembersMap get(fn members): map hasher(blake2_128_concat) T::AccountId => ();
+		MembersMap get(fn members_map): map hasher(blake2_128_concat) T::AccountId => ();
 		// Because the map does not store its size internally
 		MembersMapCount: u32;
 	}
@@ -51,7 +51,7 @@ decl_error! {
 	}
 }
 
-pub const MAX_MEMBERS: usize = 16;
+pub const MAX_MEMBERS: u32 = 16;
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
@@ -67,7 +67,7 @@ decl_module! {
 			// DB Reads: O(1) + Decoding: O(n)
 			let mut members = MembersVec::<T>::get();
 			// 设置 limit 是为了保证性能，从而 #[weight = ] 能采用常熟
-			ensure!(members.len() < MAX_MEMBERS, Error::<T>::MembersLimitReached);
+			ensure!(members.len() < MAX_MEMBERS as usize, Error::<T>::MembersLimitReached);
 
 			// Search: O(log n)
 			// Because the vec is always sorted, so binary_search makes O(log n).
@@ -138,9 +138,9 @@ decl_module! {
 /// If you require frequent iterating, you should use `vec-set`.
 impl<T: Trait> Module<T> {
 	// DB Reads: O(1) + Decoding: O(n) + Processing: O(n)
-	fn vec_iter() -> BTreeSet<T::AccountId> {
+	fn _vec_iter() -> BTreeSet<T::AccountId> {
 		// DB Reads: O(1) + Decoding: O(n)
-		Self::members()
+		Self::members_vec()
 			.into_iter()
 			// Processing: O(n)
 			.map(|x| x )
@@ -148,7 +148,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	// DB Reads: O(n) Decoding: O(n) Processing: O(n)
-	fn map_iter() -> BTreeSet<T::AccountId> {
+	fn _map_iter() -> BTreeSet<T::AccountId> {
 		// DB Reads: O(n) + Decoding: O(n)
 		// IterableStorageMap::iter() 是一个一个 io 操作的
 		<MembersMap<T> as IterableStorageMap<T::AccountId, ()>>::iter()

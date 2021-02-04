@@ -11,7 +11,8 @@ init:
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD=1 cargo check --release
+	SKIP_WASM_BUILD=1 cargo check
+	#SKIP_WASM_BUILD=1 cargo check --release
 
 
 .PHONY: check-runtime

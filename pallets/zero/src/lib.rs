@@ -59,7 +59,8 @@ pub trait Trait: system::Trait {
 // 猜测是内部公用了一个存储实例 Storage ，只不过前缀不同 module_prefix + storage_prefix
 //
 decl_storage! {
-	// ---------------------------------////////// module_prefix
+	//									module_prefix
+	// ---------------------------------//////////
 	trait Store for Module<T: Trait> as PalletZero {
 		/// `EXP`
 		/// impl<T: Trait> StorageMap<T::AccountId, u32> for SimpleMap<T>
@@ -96,7 +97,7 @@ decl_storage! {
 ///
 /// pub type Event<T> = RawEvent<<T as system::Trait>::AccountId>;
 /// ```
-fn expand_decl_event() {}
+fn _expand_decl_event() {}
 
 // T 为实现当前 pallet `Trait` 的 Runtime
 // if events need types from the pallet's Configuration Trait, eg: AccountId
@@ -126,7 +127,7 @@ decl_event!(
 /// pub enum ZeroError<T: Trait> { /* */ }
 /// impl<T: Trait> From<ZeroError<T>> for &'static str
 /// impl<T: Trait> From<ZeroError<T>> for sp_runtime::DispatchError
-fn expand_decl_error(){}
+fn _expand_decl_error(){}
 
 decl_error! {
 	pub enum ZeroError for Module<T: Trait> {
@@ -156,7 +157,7 @@ decl_error! {
 ///     pub fn do_something(origin: T::Origin, input: u32) -> DispatchResult { /* snip */ }
 /// }
 /// ```
-fn expand_decl_module() {}
+fn _expand_decl_module() {}
 
 // Dispatchable calls are defined here
 decl_module! {
@@ -175,9 +176,6 @@ decl_module! {
 
 			// could do something with the input here instead
 			let new_number = input;
-			expand_decl_event();
-			expand_decl_error();
-			expand_decl_module();
 
 			print("Hello World");
 			debug::info!("Request sent by: {:?}", user);
