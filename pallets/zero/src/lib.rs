@@ -37,14 +37,15 @@
 //! ```
 //!
 
-use frame_support::{debug, codec::{Decode, Encode}, decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
+use frame_support::{codec::{Decode, Encode}, decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
 use frame_system::{self as system, ensure_signed};
+use sp_std::prelude::*;
 // Substrate runtimes are compiled to both Web Assembly and a regular native binary, and do not have
 // access to rust's standard library.
 // only able to print items that implement the `Printable` trait
 // 启动参数必须加 -lruntime=debug
 use sp_runtime::print;
-use sp_runtime::RuntimeDebug;
+use frame_support::debug::native;
 
 #[cfg(test)]
 mod tests;
@@ -59,16 +60,23 @@ pub trait Trait: system::Trait + balances::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
-pub type GroupIndex = u32;
-
+type GroupIndex = u32;
+//
+// type ThingOf<T> = SuperThing<<T as system::Trait>::Hash, <T as balances::Trait>::Balance>;
 
 /// `Hash` `Balance` come from the system and balances pallets' configuration traits, we must
 /// specify them as generics when declaring the struct.
-#[derive(Encode, Decode, Clone, Default, RuntimeDebug)]
-pub struct InnerThing<T> {
+#[derive(Encode, Decode, Clone, Default, sp_core::RuntimeDebug)]
+pub struct InnerThing<Hash, Balance> {
 	number: u32,
-	hash: <T as system::Trait>::Hash,
-	balance: <T as balances::Trait>::Balance,
+	hash: Hash,
+	balance: Balance,
+}
+
+#[derive(Encode, Decode, Clone, Default, sp_core::RuntimeDebug)]
+pub struct SuperThing<Hash, Balance> {
+	number: u32,
+	inner: InnerThing<Hash, Balance>,
 }
 
 // 猜测是内部公用了一个存储实例 Storage ，只不过前缀不同 module_prefix + storage_prefix
@@ -110,8 +118,10 @@ decl_storage! {
 		/// Get GroupIndex for user
 		UserGroup get(fn group_membership): map hasher(blake2_128_concat) T::AccountId => GroupIndex;
 
-		InnerThingsMap get(fn inner_things_map):
-			map hasher(blake2_128_concat) T::AccountId => InnerThing<T>;
+		SuperThingMap get(fn super_thing_map):
+			map hasher(blake2_128_concat) T::AccountId => SuperThing<T::Hash, T::Balance>;
+			// map hasher(blake2_128_concat) T::AccountId => ThingOf<T> // 这种写法，需要定义以下别名
+			// type ThingOf<T> = SuperThing<<T as system::Trait>::Hash, <T as balances::Trait>::Balance>;
 
 	}
 }
@@ -153,7 +163,7 @@ decl_event!(
 		/// [GroupIndex]
 		RemoveGroup(GroupIndex),
 
-		NewInnerThing(AccountId, Hash, Balance),
+		StoreCustomStruct(AccountId, u32, Hash, Balance),
 	}
 );
 
@@ -210,7 +220,8 @@ decl_module! {
 			let user = ensure_signed(origin)?;
 
 			print("Hello World");
-			debug::info!("Request sent by: {:?}", user);
+			// debug::info!("user: {:?}", user); // wasm 也会编译，只打印 user:
+			native::info!("user: {:?}", user);	// wasm 不会编译。
 
 			<UserScore<T>>::insert(&1u32, &user, 111u32);
 			<UserGroup<T>>::insert(&user, &1u32);
@@ -286,33 +297,21 @@ decl_module! {
 		}
 
 		#[weight = 10_000]
-		fn insert_inner_thing(origin, number: u32, hash: T::Hash, balance: T::Balance) -> DispatchResult {
+		fn insert_custom_struct(origin, number: u32, hash: T::Hash, balance: T::Balance) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			let thing = InnerThing {
-							number,
-							hash,
-							balance,
-						};
-			<InnerThingsMap<T>>::insert(&user, thing);
-			Self::deposit_event(RawEvent::NewInnerThing(user, hash, balance));
-			Ok(())
-		}
+			let inner_thing = InnerThing { number, hash, balance };
+			let super_thing = SuperThing { number, inner: inner_thing};
+			<SuperThingMap<T>>::insert(&user, super_thing);
 
-		#[weight = 10_000]
-		fn get_inner_thing(origin) -> DispatchResult {
-			let user = ensure_signed(origin)?;
-			let thing = <InnerThingsMap<T>>::get(&user);
-			let thing = InnerThing {
-							number,
-							hash,
-							balance,
-						};
-			<InnerThingsMap<T>>::insert(&user, thing);
-			Self::deposit_event(RawEvent::NewInnerThing(user, hash, balance));
+			let thing = Self::super_thing_map(&user);	// <SuperThingMap<T>>::get(&user)
+			native::info!("custom_struct: {:?}", thing);
+			Self::deposit_event(RawEvent::StoreCustomStruct(user, thing.number, thing.inner.hash, thing.inner.balance));
 			Ok(())
 		}
 
 	}
 }
 
-
+fn _demo(){
+	// let x = format!("{:?}", thing);
+}
