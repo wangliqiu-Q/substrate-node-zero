@@ -124,7 +124,8 @@ decl_event!(
 /// `EXP`
 /// impl<T: Trait> From<ZeroError<T>> for &'static str
 /// impl<T: Trait> From<ZeroError<T>> for sp_runtime::DispatchError
-///
+fn expand_decl_error(){}
+
 decl_error! {
 	pub enum ZeroError for Module<T: Trait> {
 		NoValueStored,
@@ -173,6 +174,7 @@ decl_module! {
 			// could do something with the input here instead
 			let new_number = input;
 			expand_decl_event();
+			expand_decl_error();
 			expand_decl_module();
 
 			print("Hello World");
