@@ -83,6 +83,7 @@ decl_storage! {
 		/// `EXP`
 		/// impl<T: Trait> StorageValue<T::AccountId> for UserCache<T>
 		/// `frame_support::storage::StorageValue`
+		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageValue.html
 		UserCache get(fn user_cache): T::AccountId;
 	}
 }
@@ -122,6 +123,7 @@ decl_event!(
 
 
 /// `EXP`
+/// pub enum ZeroError<T: Trait> { /* */ }
 /// impl<T: Trait> From<ZeroError<T>> for &'static str
 /// impl<T: Trait> From<ZeroError<T>> for sp_runtime::DispatchError
 fn expand_decl_error(){}
