@@ -56,9 +56,10 @@ pub trait Trait: system::Trait {
 }
 
 
-
+// 猜测是内部公用了一个存储实例 Storage ，只不过前缀不同 module_prefix + storage_prefix
+//
 decl_storage! {
-	// PalletZero 为 module_prefix
+	// ---------------------------------////////// module_prefix
 	trait Store for Module<T: Trait> as PalletZero {
 		/// `EXP`
 		/// impl<T: Trait> StorageMap<T::AccountId, u32> for SimpleMap<T>
@@ -66,8 +67,8 @@ decl_storage! {
 		/// `frame_support::storage::StorageMap`
 		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageMap.html
 		///
-		/// `SimpleMap` - struct
-		/// `get(fn simple_map)` - the name of a getter function that will return values from the map.
+		/// `SimpleMap` - 类单元结构体
+		/// `get(fn simple_map)` - 为当前 pallet Module<T> 实现 simple_map 方法，内部用 get 方法实现。
 		/// `: map hasher(blake2_128_concat)` - declare type is map with blake2_128_concat hasher.
 		/// `T::AccountId => u32` - key and value type of the map.
 		///
@@ -103,6 +104,8 @@ decl_event!(
 	where
 		AccountId = <T as system::Trait>::AccountId,
 	{
+		/// Event documentation should end with an array that provides descriptive names for event
+		/// parameters. [AccountId, num]
 		EmitInput(AccountId, u32),
 
 		/// (user, value)
@@ -155,6 +158,7 @@ fn expand_decl_module() {}
 // Dispatchable calls are defined here
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		// initialize Error
 		type Error = ZeroError<T>;
 
 		// 为了下面 Self::deposit_event 提供默认实现
