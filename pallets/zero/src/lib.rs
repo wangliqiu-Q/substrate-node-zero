@@ -37,25 +37,39 @@
 //! ```
 //!
 
-use frame_support::{debug, decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
+use frame_support::{debug, codec::{Decode, Encode}, decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
 use frame_system::{self as system, ensure_signed};
 // Substrate runtimes are compiled to both Web Assembly and a regular native binary, and do not have
 // access to rust's standard library.
 // only able to print items that implement the `Printable` trait
 // 启动参数必须加 -lruntime=debug
 use sp_runtime::print;
+use sp_runtime::RuntimeDebug;
 
 #[cfg(test)]
 mod tests;
 
-/// configuration trait: access features from other pallets, or constants that affect the pallet's behavior.
-pub trait Trait: system::Trait {
+/// configuration trait: access features from other pallets.
+/// 本 pallet 的所有类型都会携带泛型 <T: Trait>
+// 							InnerThing<T> 中的 T 要转 balances::Trait
+// ------------------------------///////////////
+pub trait Trait: system::Trait + balances::Trait {
 	/// <Self as system::Trait>::Event 为父 trait 的关联类型 Event
 	/// From<Event<Self>> 中的 Event 为 decl_event! 所生成的 RawEvent<<T as system::Trait>::AccountId>
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 pub type GroupIndex = u32;
+
+
+/// `Hash` `Balance` come from the system and balances pallets' configuration traits, we must
+/// specify them as generics when declaring the struct.
+#[derive(Encode, Decode, Clone, Default, RuntimeDebug)]
+pub struct InnerThing<T> {
+	number: u32,
+	hash: <T as system::Trait>::Hash,
+	balance: <T as balances::Trait>::Balance,
+}
 
 // 猜测是内部公用了一个存储实例 Storage ，只不过前缀不同 module_prefix + storage_prefix
 //
@@ -96,6 +110,9 @@ decl_storage! {
 		/// Get GroupIndex for user
 		UserGroup get(fn group_membership): map hasher(blake2_128_concat) T::AccountId => GroupIndex;
 
+		InnerThingsMap get(fn inner_things_map):
+			map hasher(blake2_128_concat) T::AccountId => InnerThing<T>;
+
 	}
 }
 
@@ -114,7 +131,10 @@ fn _expand_decl_event() {}
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		// Id = <T as system::Trait>::AccountId	// 指定类型别名 Id
+		<T as system::Trait>::AccountId,
+		<T as system::Trait>::Hash,
+		<T as balances::Trait>::Balance,
 	{
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [AccountId]
@@ -132,6 +152,8 @@ decl_event!(
 
 		/// [GroupIndex]
 		RemoveGroup(GroupIndex),
+
+		NewInnerThing(AccountId, Hash, Balance),
 	}
 );
 
@@ -140,7 +162,7 @@ decl_event!(
 /// pub enum ZeroError<T: Trait> { /* */ }
 /// impl<T: Trait> From<ZeroError<T>> for &'static str
 /// impl<T: Trait> From<ZeroError<T>> for sp_runtime::DispatchError
-fn _expand_decl_error(){}
+fn _expand_decl_error() {}
 
 decl_error! {
 	pub enum ZeroError for Module<T: Trait> {
@@ -260,6 +282,33 @@ decl_module! {
 			// <UserScore<T>>::remove(&group_id, &user);	// just remove user
 
 			Self::deposit_event(RawEvent::RemoveGroup(group_id));
+			Ok(())
+		}
+
+		#[weight = 10_000]
+		fn insert_inner_thing(origin, number: u32, hash: T::Hash, balance: T::Balance) -> DispatchResult {
+			let user = ensure_signed(origin)?;
+			let thing = InnerThing {
+							number,
+							hash,
+							balance,
+						};
+			<InnerThingsMap<T>>::insert(&user, thing);
+			Self::deposit_event(RawEvent::NewInnerThing(user, hash, balance));
+			Ok(())
+		}
+
+		#[weight = 10_000]
+		fn get_inner_thing(origin) -> DispatchResult {
+			let user = ensure_signed(origin)?;
+			let thing = <InnerThingsMap<T>>::get(&user);
+			let thing = InnerThing {
+							number,
+							hash,
+							balance,
+						};
+			<InnerThingsMap<T>>::insert(&user, thing);
+			Self::deposit_event(RawEvent::NewInnerThing(user, hash, balance));
 			Ok(())
 		}
 
