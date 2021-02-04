@@ -10,8 +10,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-// pub use example::set::*;
-pub use example::ringbuffer::*;
+pub use example::set::*;
+// pub use example::ringbuffer::*;
 
 
 // todo https://substrate.dev/docs/en/knowledgebase/runtime/storage
