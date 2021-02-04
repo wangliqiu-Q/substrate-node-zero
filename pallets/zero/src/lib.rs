@@ -55,6 +55,7 @@ pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
+pub type GroupIndex = u32;
 
 // 猜测是内部公用了一个存储实例 Storage ，只不过前缀不同 module_prefix + storage_prefix
 //
@@ -63,12 +64,12 @@ decl_storage! {
 	// ---------------------------------//////////
 	trait Store for Module<T: Trait> as PalletZero {
 		/// `EXP`
-		/// impl<T: Trait> StorageMap<T::AccountId, u32> for SimpleMap<T>
-		/// impl<T: Trait> StoragePrefixedMap<u32> for SimpleMap<T>
+		/// impl<T: Trait> StorageMap<T::AccountId, u32> for UserMap<T>
+		/// impl<T: Trait> StoragePrefixedMap<u32> for UserMap<T>
 		/// `frame_support::storage::StorageMap`
 		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageMap.html
 		///
-		/// `SimpleMap` - 类单元结构体
+		/// `UserMap` - 类单元结构体
 		/// `get(fn simple_map)` - 为当前 pallet Module<T> 实现 simple_map 方法，内部用 get 方法实现。
 		/// `: map hasher(blake2_128_concat)` - declare type is map with blake2_128_concat hasher.
 		/// `T::AccountId => u32` - key and value type of the map.
@@ -79,13 +80,22 @@ decl_storage! {
 		/// affect the storage keys.
 		/// `identity`: merely an identity function that returns the same value it receives. This hasher
 		/// is only an option when the key type in your storage map is already a hash.
-		SimpleMap get(fn simple_map): map hasher(blake2_128_concat) T::AccountId => u32;
+		UserMap get(fn simple_map): map hasher(blake2_128_concat) T::AccountId => u32;
 
 		/// `EXP`
 		/// impl<T: Trait> StorageValue<T::AccountId> for UserCache<T>
 		/// `frame_support::storage::StorageValue`
 		/// https://substrate.dev/rustdocs/v2.0.0/frame_support/storage/trait.StorageValue.html
 		UserCache get(fn user_cache): T::AccountId;
+
+		/// `double_map`: `remove_prefix(first_key)` remove all values with the first_key identifier
+		UserScore get(fn user_score):
+			//                                    first key                             second key
+			// ----------------------------------//////////----------------------------////////////
+			double_map hasher(blake2_128_concat) GroupIndex, hasher(blake2_128_concat) T::AccountId => u32;
+		/// Get GroupIndex for user
+		UserGroup get(fn group_membership): map hasher(blake2_128_concat) T::AccountId => GroupIndex;
+
 	}
 }
 
@@ -107,18 +117,21 @@ decl_event!(
 		AccountId = <T as system::Trait>::AccountId,
 	{
 		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [AccountId, num]
-		EmitInput(AccountId, u32),
+		/// parameters. [AccountId]
+		Init(AccountId),
 
-		/// (user, value)
+		/// [user, value]
 		InsertEntry(AccountId, u32),
-		/// (user, value)
+		/// [user, value]
 		GetEntry(AccountId, u32),
-		/// (user, old_value, new_value)
+		/// [user, old_value, new_value]
 		IncreaseEntry(AccountId, u32, u32),
 
-		/// (old_user, new_user)
+		/// [old_user, new_user]
 		UpdateCache(AccountId, AccountId),
+
+		/// [GroupIndex]
+		RemoveGroup(GroupIndex),
 	}
 );
 
@@ -171,17 +184,17 @@ decl_module! {
 		/// weights affect the fees a user will have to pay to call the function.
 		#[weight = 10_000]
 		/// return: Result<(), sp_runtime::DispatchError>
-		pub fn do_something(origin, input: u32) -> DispatchResult {
+		pub fn init(origin) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-
-			// could do something with the input here instead
-			let new_number = input;
 
 			print("Hello World");
 			debug::info!("Request sent by: {:?}", user);
 
+			<UserScore<T>>::insert(&1u32, &user, 111u32);
+			<UserGroup<T>>::insert(&user, &1u32);
+
 			// emit event
-			Self::deposit_event(RawEvent::EmitInput(user, new_number));
+			Self::deposit_event(RawEvent::Init(user));
 			Ok(())
 		}
 
@@ -189,19 +202,19 @@ decl_module! {
 		fn insert_entry(origin, value: u32) -> DispatchResult {
 			let user = ensure_signed(origin)?;
 
-			<SimpleMap<T>>::insert(&user, value);
+			<UserMap<T>>::insert(&user, value);
 			Self::deposit_event(RawEvent::InsertEntry(user, value));
 
 			Ok(())
 		}
 
 		#[weight = 10_000]
-		fn get_entry(origin, account: T::AccountId) -> DispatchResult {
+		fn get_entry(origin) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			ensure!(<SimpleMap<T>>::contains_key(&account), ZeroError::<T>::NoValueStored);
+			ensure!(<UserMap<T>>::contains_key(&user), ZeroError::<T>::NoValueStored);
 
 			// StorageMap api还有 take
-			let value = <SimpleMap<T>>::get(account);
+			let value = <UserMap<T>>::get(&user);
 			Self::deposit_event(RawEvent::GetEntry(user, value));
 
 			Ok(())
@@ -210,11 +223,11 @@ decl_module! {
 		#[weight = 10_000]
 		fn increase_entry(origin, add_this_val: u32) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			ensure!(<SimpleMap<T>>::contains_key(&user), ZeroError::<T>::NoValueStored);
+			ensure!(<UserMap<T>>::contains_key(&user), ZeroError::<T>::NoValueStored);
 
-			let original_value = <SimpleMap<T>>::get(&user);
+			let original_value = <UserMap<T>>::get(&user);
 			let new_value = original_value.checked_add(add_this_val).ok_or(ZeroError::<T>::MaxValueReached)?;
-			<SimpleMap<T>>::insert(&user, new_value);
+			<UserMap<T>>::insert(&user, new_value);
 			Self::deposit_event(RawEvent::IncreaseEntry(user, original_value, new_value));
 
 			Ok(())
@@ -236,6 +249,20 @@ decl_module! {
 
 			Ok(())
 		}
+
+		#[weight = 10_000]
+		fn remove_group(origin) -> DispatchResult {
+			let user = ensure_signed(origin)?;
+
+			let group_id = <UserGroup<T>>::get(&user);
+			// remove all group members from UserScore at once
+			<UserScore<T>>::remove_prefix(&group_id);
+			// <UserScore<T>>::remove(&group_id, &user);	// just remove user
+
+			Self::deposit_event(RawEvent::RemoveGroup(group_id));
+			Ok(())
+		}
+
 	}
 }
 
