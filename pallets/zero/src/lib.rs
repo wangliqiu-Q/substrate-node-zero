@@ -25,7 +25,7 @@
 //! // 6. Callable Functions
 //! decl_module! {  	}
 //!
-//! // 7. runtime/lib.rs
+//! // 7. runtime/set
 //! impl pallet_zero::Trait for Runtime {
 //! 	type Event = Event;
 //! }

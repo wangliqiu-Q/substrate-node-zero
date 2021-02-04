@@ -1,0 +1,106 @@
+
+//! 在使用 circular buffer 时，不需要将其元素重新排序。（如果使用 non-circular buffer ，则在消耗一个元素时，必须
+//! 对所有元素进行移位。）即，circular buffer 适合作为FIFO（先进先出）缓冲区，而 non-circular buffer 适合
+//! 用作LIFO（后进先出）缓冲区。
+//!
+//!
+
+#![cfg_attr(not(feature = "std"), no_std)]
+
+use parity_scale_codec::{Decode, Encode};
+use frame_support::{decl_event, decl_module, decl_storage, dispatch::DispatchResult};
+use frame_system::{self as system, ensure_signed};
+use sp_std::prelude::*;
+
+use crate::example::ringbuffer_impl::{RingBufferTrait, RingBufferTransient};
+
+
+type BufferIndex = u8;
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ValueStruct {
+	integer: i32,
+	boolean: bool,
+}
+
+pub trait Trait: system::Trait {
+	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+}
+
+decl_storage! {
+	trait Store for Module<T: Trait> as RingBufferQueue {
+		BufferMap get(fn get_value): map hasher(twox_64_concat) BufferIndex => ValueStruct;
+		BufferRange get(fn range): (BufferIndex, BufferIndex) = (0, 0);
+	}
+}
+
+decl_event!(
+	pub enum Event<T>
+	where
+		AccountId = <T as system::Trait>::AccountId,
+	{
+		Popped(i32, bool),
+		DummyEvent(AccountId),
+	}
+);
+
+decl_module! {
+	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		fn deposit_event() = default;
+
+		/// Add an item to the queue
+		#[weight = 10_000]
+		pub fn add_to_queue(origin, integer: i32, boolean: bool) -> DispatchResult {
+			// only a user can push into the queue
+			let _user = ensure_signed(origin)?;
+
+			let mut queue = Self::queue_transient();
+			queue.push(ValueStruct{ integer, boolean });
+
+			Ok(())
+		}
+
+		/// Add several items to the queue
+		#[weight = 10_000]
+		pub fn add_multiple(origin, integers: Vec<i32>, boolean: bool) -> DispatchResult {
+			// only a user can push into the queue
+			let _user = ensure_signed(origin)?;
+
+			let mut queue = Self::queue_transient();
+			for integer in integers {
+				queue.push(ValueStruct{ integer, boolean });
+			}
+
+			Ok(())
+		}
+
+		/// Remove and return an item from the queue
+		#[weight = 10_000]
+		pub fn pop_from_queue(origin) -> DispatchResult {
+			// only a user can pop from the queue
+			let _user = ensure_signed(origin)?;
+
+			let mut queue = Self::queue_transient();
+			if let Some(ValueStruct{ integer, boolean }) = queue.pop() {
+				Self::deposit_event(RawEvent::Popped(integer, boolean));
+			}
+
+			Ok(())
+		}
+	}
+}
+
+impl<T: Trait> Module<T> {
+	/// Constructor function so we don't have to specify the types every time.
+	///
+	/// Constructs a ringbuffer transient and returns it as a boxed trait object.
+	fn queue_transient() -> Box<dyn RingBufferTrait<ValueStruct>> {
+		Box::new(RingBufferTransient::<
+			ValueStruct,
+			<Self as Store>::BufferRange,
+			<Self as Store>::BufferMap,
+			BufferIndex,
+		>::new())
+	}
+}
