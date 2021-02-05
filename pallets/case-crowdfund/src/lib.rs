@@ -36,44 +36,42 @@ pub trait Trait: system::Trait {
 	/// The amount to be held on deposit by the owner of a crowdfund
 	type SubmissionDeposit: Get<BalanceOf<Self>>;
 
-	/// The minimum amount that may be contributed into a crowdfund. Should almost certainly be at
-	/// least ExistentialDeposit.
+	/// The minimum amount that may be contributed into a crowdfund.
 	type MinContribution: Get<BalanceOf<Self>>;
 
-	/// The period of time (in blocks) after an unsuccessful crowdfund ending during which
-	/// contributors are able to withdraw their funds. After this period, their funds are lost.
+	/// The period of time (in blocks) during which contributors are able to withdraw their funds.
+	/// After this period, their funds are lost.
 	type RetirementPeriod: Get<Self::BlockNumber>;
 }
 
-/// Simple index for identifying a fund.
+/// 第几笔资金
 pub type FundIndex = u32;
 
 type AccountIdOf<T> = <T as system::Trait>::AccountId;
 type BalanceOf<T> = <<T as Trait>::Currency as Currency<AccountIdOf<T>>>::Balance;
 type FundInfoOf<T> = FundInfo<AccountIdOf<T>, BalanceOf<T>, <T as system::Trait>::BlockNumber>;
 
+/// 每一笔资金信息
 #[derive(Encode, Decode, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct FundInfo<AccountId, Balance, BlockNumber> {
-	/// The account that will recieve the funds if the campaign is successful
+	/// 受益人
 	beneficiary: AccountId,
 	/// The amount of deposit placed
 	deposit: Balance,
 	/// The total amount raised
 	raised: Balance,
 	/// Block number after which funding must have succeeded
-	end: BlockNumber,
+	end_time: BlockNumber,
 	/// Upper bound on `raised`
 	goal: Balance,
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as ChildTrie {
-		/// Info on all of the funds.
 		Funds get(fn funds):
 			map hasher(blake2_128_concat) FundIndex => Option<FundInfoOf<T>>;
 
-		/// The total number of funds that have so far been allocated.
 		FundCount get(fn fund_count): FundIndex;
 
 		// Additional information is stored i na child trie. See the helper
@@ -298,6 +296,7 @@ decl_module! {
 	}
 }
 
+/// uses one trie for each active crowdfund, we need to generate a unique ChildInfo for each of them.
 impl<T: Trait> Module<T> {
 	/// The account ID of the fund pot.
 	///
