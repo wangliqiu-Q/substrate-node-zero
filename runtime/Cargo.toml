@@ -19,9 +19,11 @@ hex-literal = { optional = true, version = '0.3.1' }
 serde = { features = ['derive'], optional = true, version = '1.0.119' }
 
 ##################################### Local Dependencies #####################################
+pallet-case-crowdfund = { path = '../pallets/case-crowdfund', default-features = false, version = '2.0.1' }
+pallet-combine = { path = '../pallets/combine', default-features = false, version = '2.0.1' }
 pallet-template = { path = '../pallets/template', default-features = false, version = '2.0.1' }
 pallet-zero = { path = '../pallets/zero', default-features = false, version = '2.0.1' }
-pallet-combine = { path = '../pallets/combine', default-features = false, version = '2.0.1' }
+
 
 ##################################### Substrate Dependencies #####################################
 # frame
@@ -69,9 +71,10 @@ std = [
     'parity-scale-codec/std',
     'serde',
     # local pallet
+    'pallet-case-crowdfund/std',
+    'pallet-combine/std',
     'pallet-template/std',
     'pallet-zero/std',
-    'pallet-combine/std',
     # frame
     'frame-executive/std',
     'frame-support/std',

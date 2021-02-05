@@ -69,14 +69,6 @@ decl_module! {
 			Ok(())
 		}
 
-		/// For testing purposes
-		#[weight = 10_000]
-		fn set_value(origin, value: u32) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
-			<SingleValue>::put(value);
-			Ok(())
-		}
-
 		/// `EXP`
 		/// impl<T: system::Trait + Trait> OnFinalize<<T as system::Trait>::BlockNumber> for Module<T> {}
 		/// `frame_support::traits::OnFinalize`

@@ -293,6 +293,20 @@ impl pallet_sudo::Trait for Runtime {
 fn _expand_parameter_types(){}
 
 parameter_types! {
+	pub const SubmissionDeposit: u128 = 10;
+	pub const MinContribution: u128 = 10;
+	pub const RetirementPeriod: u32 = 10;
+}
+
+impl pallet_case_crowdfund::Trait for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type SubmissionDeposit = SubmissionDeposit;
+	type MinContribution = MinContribution;
+	type RetirementPeriod = RetirementPeriod;
+}
+
+parameter_types! {
     pub const MaxAddend: u32 = 100;
     pub const ClearFrequency: u32 = 5;
 }
@@ -328,6 +342,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// ------------------------ local pallets -------------------------------
+		CaseCrowdfund: pallet_case_crowdfund::{Module, Call, Storage, Event<T>},
 		Combine: pallet_combine::{Module, Call, Storage, Event<T>},
 		Template: pallet_template::{Module, Call, Storage, Event<T>},
 		Zero: pallet_zero::{Module, Call, Storage, Event<T>},	// <T> is necessary for generic events.

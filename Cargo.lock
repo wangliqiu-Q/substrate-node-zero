@@ -3737,6 +3737,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-case-crowdfund"
+version = "2.0.1"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-storage",
+]
+
+[[package]]
 name = "pallet-combine"
 version = "2.0.1"
 dependencies = [
@@ -4976,6 +4991,7 @@ dependencies = [
  "hex-literal",
  "pallet-aura",
  "pallet-balances",
+ "pallet-case-crowdfund",
  "pallet-combine",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
