@@ -3,9 +3,7 @@
 //! runtime constant
 //!
 //!
-//! The value added cannot exceed a maximum which is specified as a configuration constant.
 //!
-
 
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -22,7 +20,7 @@ mod tests;
 
 
 pub trait Trait: system::Trait {
-	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
 	/// Maximum amount added per invocation
 	type MaxAddend: Get<u32>;
@@ -38,11 +36,16 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event {
+	pub enum Event<T>
+	where
+		<T as system::Trait>::AccountId,
+	{
 		/// [initial amount, amount added, final amount]
-		Added(u32, u32, u32),
-		/// The parameter is the value before clearing.
-		Cleared(u32),
+		SingleValueAdded(u32, u32, u32),
+		/// The parameter is the value before clearing. [old_val]
+		SingleValueCleared(u32),
+
+		Hold(AccountId),
 	}
 );
 
@@ -60,12 +63,9 @@ decl_module! {
 
 			let c_val = <SingleValue>::get();
 
-			let result = match c_val.checked_add(val_to_add) {
-				Some(r) => r,
-				None => return Err(DispatchError::Other("Addition overflowed")),
-			};
+			let result = c_val.checked_add(val_to_add).ok_or(DispatchError::Other("Addition overflowed"))?;
 			<SingleValue>::put(result);
-			Self::deposit_event(Event::Added(c_val, val_to_add, result));
+			Self::deposit_event(RawEvent::SingleValueAdded( c_val, val_to_add, result));
 			Ok(())
 		}
 
@@ -85,9 +85,9 @@ decl_module! {
 			// SingleValue is set to 0 every ClearFrequency number of blocks in the on_finalize
 			// function that runs at the end of blocks execution.
 			if (n % T::ClearFrequency::get()).is_zero() {
-				let c_val = <SingleValue>::get();
+				let old_val = <SingleValue>::get();
 				<SingleValue>::put(0u32);
-				Self::deposit_event(Event::Cleared(c_val));
+				Self::deposit_event(RawEvent::SingleValueCleared(old_val));
 			}
 		}
 	}

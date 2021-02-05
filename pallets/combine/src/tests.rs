@@ -1,5 +1,9 @@
-use crate::{Event, Module, Trait};
-use frame_support::{assert_ok, impl_outer_event, impl_outer_origin, parameter_types};
+use super::Event;
+use crate::{Module, Trait};
+use frame_support::{
+	assert_err, assert_ok, impl_outer_event, impl_outer_origin, parameter_types, traits::OnFinalize,
+};
+use frame_system as system;
 use sp_core::H256;
 use sp_io::TestExternalities;
 use sp_runtime::{
@@ -7,7 +11,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
-use frame_system::{EventRecord, Phase};
 
 impl_outer_origin! {
 	pub enum Origin for TestRuntime {}
@@ -16,6 +19,7 @@ impl_outer_origin! {
 // Workaround for https://github.com/rust-lang/rust/issues/26925 . Remove when sorted.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRuntime;
+
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 	pub const MaximumBlockWeight: u32 = 1024;
@@ -23,8 +27,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-// The TestRuntime implements two pallet/frame traits: system, and simple_event
-impl frame_system::Trait for TestRuntime {
+impl system::Trait for TestRuntime {
 	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Index = u64;
@@ -52,29 +55,35 @@ impl frame_system::Trait for TestRuntime {
 	type SystemWeightInfo = ();
 }
 
-mod simple_event {
+mod constant_config {
 	pub use crate::Event;
 }
 
 impl_outer_event! {
 	pub enum TestEvent for TestRuntime {
-		simple_event,
-		frame_system<T>,
+		constant_config,
+		system<T>,
 	}
 }
 
+parameter_types! {
+	pub const MaxAddend: u32 = 100;
+	pub const ClearFrequency: u64 = 10;
+}
 impl Trait for TestRuntime {
 	type Event = TestEvent;
+	type MaxAddend = MaxAddend;
+	type ClearFrequency = ClearFrequency;
 }
 
-pub type System = frame_system::Module<TestRuntime>;
-pub type SimpleEvent = Module<TestRuntime>;
+pub type System = system::Module<TestRuntime>;
+pub type ConstantConfig = Module<TestRuntime>;
 
 struct ExternalityBuilder;
 
 impl ExternalityBuilder {
 	pub fn build() -> TestExternalities {
-		let storage = frame_system::GenesisConfig::default()
+		let storage = system::GenesisConfig::default()
 			.build_storage::<TestRuntime>()
 			.unwrap();
 		let mut ext = TestExternalities::from(storage);
@@ -84,17 +93,75 @@ impl ExternalityBuilder {
 }
 
 #[test]
-fn test() {
+fn max_added_exceeded_errs() {
 	ExternalityBuilder::build().execute_with(|| {
-		assert_ok!(SimpleEvent::do_something(Origin::signed(1), 32));
-
-		assert_eq!(
-			System::events(),
-			vec![EventRecord {
-				phase: Phase::Initialization,
-				event: TestEvent::simple_event(Event::EmitInput(32)),
-				topics: vec![],
-			}]
+		assert_err!(
+			ConstantConfig::add_value(Origin::signed(1), 101),
+			"value must be <= maximum add amount constant"
 		);
+	})
+}
+
+#[test]
+fn overflow_checked() {
+	ExternalityBuilder::build().execute_with(|| {
+		let test_num: u32 = u32::max_value() - 99;
+		assert_ok!(ConstantConfig::set_value(Origin::signed(1), test_num));
+
+		assert_err!(
+			ConstantConfig::add_value(Origin::signed(1), 100),
+			"Addition overflowed"
+		);
+	})
+}
+
+#[test]
+fn add_value_works() {
+	ExternalityBuilder::build().execute_with(|| {
+
+		assert_ok!(ConstantConfig::set_value(Origin::signed(1), 10));
+
+		assert_ok!(ConstantConfig::add_value(Origin::signed(2), 100));
+
+		assert_ok!(ConstantConfig::add_value(Origin::signed(3), 100));
+
+		assert_ok!(ConstantConfig::add_value(Origin::signed(4), 100));
+
+		//Test that the expected events were emitted
+		let our_events = System::events()
+		.into_iter().map(|r| r.event)
+		.filter_map(|e| {
+			if let TestEvent::constant_config(inner) = e { Some(inner) } else { None }
+		})
+		.collect::<Vec<_>>();
+
+		let expected_events = vec![
+			Event::Added(10, 100, 110),
+			Event::Added(110, 100, 210),
+			Event::Added(210, 100, 310),
+	];
+
+	assert_eq!(our_events, expected_events);
+
+	})
+}
+
+	#[test]
+	fn on_finalize_clears() {
+		ExternalityBuilder::build().execute_with(|| {
+			System::set_block_number(5);
+			assert_ok!(ConstantConfig::set_value(Origin::signed(1), 10));
+
+			assert_ok!(ConstantConfig::add_value(Origin::signed(2), 100));
+
+			ConstantConfig::on_finalize(10);
+			let expected_event = TestEvent::constant_config(Event::Cleared(110));
+
+			assert_eq!(
+				System::events()[1].event,
+				expected_event,
+			);
+
+			assert_eq!(ConstantConfig::single_value(), 0);
 	})
 }

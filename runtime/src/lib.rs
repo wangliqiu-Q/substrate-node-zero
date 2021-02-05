@@ -264,9 +264,37 @@ impl pallet_sudo::Trait for Runtime {
 
 // ------------------------------ Configure local pallets ---------------------------------------
 
+/// `EXP`
+/// ```
+/// pub type Number = u32;
+///
+/// parameter_types! {
+/// 	pub const Num: Number = 2400;
+/// }
+///
+/// ```
+/// ```
+/// pub type Number = u32;
+///
+/// pub struct Num;
+/// // Num -> Number
+/// impl Num {
+/// 	pub const fn get() -> Number {
+/// 		2400
+/// 	}
+/// }
+/// // Num -> I: From<Number>
+/// impl<I: From<Number>> frame_support::traits::Get<I> for Num {
+/// 	fn get() -> I {
+/// 		I::from(2400)
+/// 	}
+/// }
+/// ```
+fn _expand_parameter_types(){}
+
 parameter_types! {
-    pub const MaxAddend: u32 = 1738;
-    pub const ClearFrequency: u32 = 10;
+    pub const MaxAddend: u32 = 100;
+    pub const ClearFrequency: u32 = 5;
 }
 
 impl pallet_combine::Trait for Runtime {
@@ -300,7 +328,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// ------------------------ local pallets -------------------------------
-		Combine: pallet_simple::{Module, Call, Storage, Event<T>},
+		Combine: pallet_combine::{Module, Call, Storage, Event<T>},
 		Template: pallet_template::{Module, Call, Storage, Event<T>},
 		Zero: pallet_zero::{Module, Call, Storage, Event<T>},	// <T> is necessary for generic events.
 

@@ -44,9 +44,10 @@ use sp_std::prelude::*;
 use sp_runtime::print;
 use frame_support::debug::native;
 
-
-/// configuration trait: access features from other pallets.
-/// 本 pallet 的所有类型都会携带泛型 <T: Trait>
+/// `Configuration Trait`
+/// 该 Trait 所声明的关联类型都必须在 runtime/lib.rs 中 impl pallet_zero::Trait for Runtime { } 具体化，其中
+/// Runtime 为单元结构体，聚合实现了所有 pallet 的 Trait
+/// pallet 的所有本地类型都会携带泛型 <T: Trait> ，其中 T 就是 Runtime
 pub trait Trait: system::Trait {
 	/// <Self as system::Trait>::Event 为父 trait 的关联类型 Event
 	/// From<Event<Self>> 中的 Event 为 decl_event! 所生成的 RawEvent<<T as system::Trait>::AccountId>
@@ -268,5 +269,5 @@ decl_module! {
 }
 
 fn _demo() {
-	let x = 3u64.checked_sub(4u64);
+	let _x = 3u64.checked_sub(4u64);
 }
