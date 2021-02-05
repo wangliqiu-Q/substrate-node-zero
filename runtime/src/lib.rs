@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit="256"]
+#![recursion_limit = "256"]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -191,16 +191,6 @@ impl frame_system::Trait for Runtime {
 	type SystemWeightInfo = ();
 }
 
-// ------------------------------ Configure local pallets ---------------------------------------
-impl pallet_zero::Trait for Runtime {
-	type Event = Event;
-}
-
-impl pallet_simple::Trait for Runtime {
-	type Event = Event;
-}
-
-// ----------------------------------------------------------------------------------------------
 
 impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
@@ -213,7 +203,7 @@ impl pallet_grandpa::Trait for Runtime {
 	type KeyOwnerProofSystem = ();
 
 	type KeyOwnerProof =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
 	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
 		KeyTypeId,
@@ -271,10 +261,28 @@ impl pallet_sudo::Trait for Runtime {
 	type Call = Call;
 }
 
-/// Configure the template pallet in pallets/template.
+
+// ------------------------------ Configure local pallets ---------------------------------------
+
+parameter_types! {
+    pub const MaxAddend: u32 = 1738;
+    pub const ClearFrequency: u32 = 10;
+}
+
+impl pallet_combine::Trait for Runtime {
+	type Event = Event;
+	type MaxAddend = MaxAddend;
+	type ClearFrequency = ClearFrequency;
+}
+
 impl pallet_template::Trait for Runtime {
 	type Event = Event;
 }
+
+impl pallet_zero::Trait for Runtime {
+	type Event = Event;
+}
+// ----------------------------------------------------------------------------------------------
 
 
 construct_runtime!(
@@ -292,14 +300,16 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// ------------------------ local pallets -------------------------------
-		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
-		Zero: pallet_zero::{Module, Call, Event<T>, Storage},	// <T> is necessary for generic events.
-		Simple: pallet_simple::{Module, Call, Event},
+		Combine: pallet_simple::{Module, Call, Storage, Event<T>},
+		Template: pallet_template::{Module, Call, Storage, Event<T>},
+		Zero: pallet_zero::{Module, Call, Storage, Event<T>},	// <T> is necessary for generic events.
+
 	}
 );
 
 /// The address format for describing accounts.
 mod multiaddress;
+
 pub type Address = multiaddress::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;

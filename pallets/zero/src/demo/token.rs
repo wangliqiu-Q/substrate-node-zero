@@ -12,7 +12,7 @@ pub trait Trait: system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Token {
+	trait Store for Module<T: Trait> as PalletZero {
 		pub Balances get(fn get_balance): map hasher(blake2_128_concat) T::AccountId => u64;
 		//                                          初始值
 		// ---------------------------------------///////////
