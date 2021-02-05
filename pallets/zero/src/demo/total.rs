@@ -1,4 +1,3 @@
-
 //! `Extrinsic`: a call from outside of the chain. Most of the time they are transactions.
 //!
 
@@ -35,7 +34,7 @@
 //! ```
 //!
 
-use frame_support::{  decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
+use frame_support::{decl_module, decl_event, decl_error, decl_storage, dispatch::DispatchResult, ensure};
 use frame_system::{self as system, ensure_signed};
 use sp_std::prelude::*;
 // Substrate runtimes are compiled to both Web Assembly and a regular native binary, and do not have
@@ -48,7 +47,7 @@ use frame_support::debug::native;
 
 /// configuration trait: access features from other pallets.
 /// 本 pallet 的所有类型都会携带泛型 <T: Trait>
-pub trait Trait: system::Trait   {
+pub trait Trait: system::Trait {
 	/// <Self as system::Trait>::Event 为父 trait 的关联类型 Event
 	/// From<Event<Self>> 中的 Event 为 decl_event! 所生成的 RawEvent<<T as system::Trait>::AccountId>
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -268,6 +267,6 @@ decl_module! {
 	}
 }
 
-fn _demo(){
-	// let x = format!("{:?}", thing);
+fn _demo() {
+	let x = 3u64.checked_sub(4u64);
 }
